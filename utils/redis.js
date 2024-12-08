@@ -1,57 +1,75 @@
-import redis from 'redis';
-import { promisify } from 'util';
+const redis = require('redis');
+const { promisify } = require('util');
 
 class RedisClient {
   constructor() {
+    // Create a Redis client
     this.client = redis.createClient();
+
+    // Promisify the 'get' method for async/await support
     this.getAsync = promisify(this.client.get).bind(this.client);
 
-    this.client.on('connect', () => {
-      console.log('Redis client connected to the server');
+    // Handle connection errors
+    this.client.on('error', (err) => {
+      console.error('Redis client not connected to the server:', err);
     });
 
-    this.client.on('error', (err) => {
-      console.log('Redis client not connected to the server:', err);
+    // Optional: Log a successful connection
+    this.client.on('connect', () => {
+      console.log('Redis client connected to the server');
     });
   }
 
   /**
-   * Method that checks if the connection is alive
-   * @return {boolean} true if the connection is alive or false if not
+   * Check if Redis connection is alive
+   * @return {boolean} True if connected, false otherwise
    */
   isAlive() {
     return this.client.connected;
   }
 
   /**
-   * Method to get the value of a key
-   * @param {string} key The key to retrieve
-   * @return {string|null} The value of the key, or null if not found
+   * Get the value of a key from Redis
+   * @param {string} key - The key to retrieve
+   * @return {Promise<string|null>}
    */
   async get(key) {
-    const value = await this.getAsync(key);
-    return value;
+    try {
+      const value = await this.getAsync(key);
+      return value;
+    } catch (err) {
+      console.error(`Error getting key "${key}":`, err);
+      return null;
+    }
   }
 
   /**
-   * Method to set a key-value pair with expiration
-   * @param {string} key The key to set
-   * @param {string} value The value to set
-   * @param {number} duration The expiration time in seconds
+   * Set a key-value pair in Redis with an expiration time
+   * @param {string} key - The key to set
+   * @param {string} value - The value to store
+   * @param {number} duration - Expiration time in seconds
    */
   set(key, value, duration) {
-    this.client.setex(key, duration, value);
+    this.client.setex(key, duration, value, (err) => {
+      if (err) {
+        console.error(`Error setting key "${key}" with expiration:`, err);
+      }
+    });
   }
 
   /**
-   * Method to delete a key
-   * @param {string} key The key to delete
-   * @return {void}
+   * Delete a key from Redis
+   * @param {string} key - The key to delete
    */
-  delete(key) {
-    this.client.del(key);
+  del(key) {
+    this.client.del(key, (err) => {
+      if (err) {
+        console.error(`Error deleting key "${key}":`, err);
+      }
+    });
   }
 }
 
+// Create and export an instance of RedisClient
 const redisClient = new RedisClient();
 export default redisClient;
