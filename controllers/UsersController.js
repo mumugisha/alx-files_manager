@@ -1,7 +1,7 @@
-import { ObjectId } from 'mongodb';
-import sha1 from 'sha1';
-import dbClient from '../utils/db';
-import UserUtils from '../utils/user';
+const { ObjectId } = require('mongodb');
+const sha1 = require('sha1');
+const dbClient = require('../utils/db');
+const UserUtils = require('../utils/user');
 
 class UserController {
   static async postNew(req, res) {
@@ -57,4 +57,4 @@ class UserController {
   }
 }
 
-export default UserController;
+module.exports = UserController;
